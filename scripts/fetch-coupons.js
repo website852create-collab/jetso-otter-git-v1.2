@@ -12,33 +12,61 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 async function fetchCoupons() {
   console.log('開始抓取 ChineseAN 優惠...');
   
-  // 根據文件構建 URL (範例，需根據實際文件調整參數)
-  // 假設使用 Get Coupon List 接口
-  const apiUrl = `https://api.chinesean.com/affiliate/getCouponList.php?websiteId=${CHINESEAN_ID}&token=${CHINESEAN_TOKEN}&format=json`;
+  // 使用新版 Promotion Info API
+  const startDate = '20251021';
+  const endDate = '20251221';
+  const apiUrl = `https://www.chinesean.com/api/promotionInfo.do?websiteId=${CHINESEAN_ID}&token=${CHINESEAN_TOKEN}&format=json&startDate=${startDate}&endDate=${endDate}`;
 
   try {
     const response = await fetch(apiUrl);
     const data = await response.json();
+    console.log('API 回傳原始內容:', JSON.stringify(data, null, 2));
 
-    if (!data || !Array.isArray(data)) {
+    // 嘗試自動判斷資料陣列位置
+    let coupons = Array.isArray(data) ? data : (Array.isArray(data.result) ? data.result : (Array.isArray(data.data) ? data.data : []));
+
+    if (!coupons.length) {
       console.error('API 回傳格式錯誤或無資料');
       return;
     }
 
-    console.log(`取得 ${data.length} 筆資料，開始寫入資料庫...`);
+    console.log(`取得 ${coupons.length} 筆資料，開始寫入資料庫...`);
 
-    for (const item of data) {
+    for (const item of coupons) {
       // 資料清洗與對應
+      // 依據 API 文件與回傳格式重新對應欄位
+      const couponCodeInfo = Array.isArray(item.couponCodeInfo) ? item.couponCodeInfo[0] : null;
+      const couponId = couponCodeInfo && couponCodeInfo.id ? couponCodeInfo.id : item.promotionId;
+      const couponCode = couponCodeInfo && couponCodeInfo.coupon ? couponCodeInfo.coupon : null;
+      // 取商家名稱（優先繁體）
+      const merchantName = item.programName_zh_hk || item.programName_en_us || item.programName_zh_cn || '';
+      // 取標題（優先繁體）
+      const title = item.promotionTitle_zh_hk || item.promotionTitle_en_us || item.promotionTitle_zh_cn || '';
+      // 取描述（優先繁體）
+      const description = item.description_zh_hk || item.description_en_us || item.description_zh_cn || '';
+      // 取追蹤連結（優先 couponLinkInfo[0]）
+      const trackingUrl = Array.isArray(item.couponLinkInfo) && item.couponLinkInfo[0] ? item.couponLinkInfo[0].trackingUrl : '';
+      // 取圖片（優先 fileInfo[0].filePath）
+      const imageUrl = Array.isArray(item.fileInfo) && item.fileInfo[0] ? item.fileInfo[0].filePath : '';
+      // 取開始/結束時間（優先 promotionTime_zh_hk）
+      let startDate = '', endDate = '';
+      if (item.promotionTime_zh_hk) {
+        const match = item.promotionTime_zh_hk.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) To (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/);
+        if (match) {
+          startDate = match[1];
+          endDate = match[2];
+        }
+      }
       const couponData = {
-        id: parseInt(item.Id), // 確保 ID 格式正確
-        title: item.Name,
-        merchant_name: item.ProgramName,
-        description: item.Description,
-        tracking_url: item.TrackingUrl,
-        code: item.CouponCode || null,
-        start_date: item.StartDate,
-        end_date: item.EndDate,
-        image_url: item.Logo, // 如果有的話
+        id: couponId,
+        title,
+        merchant_name: merchantName,
+        description,
+        tracking_url: trackingUrl,
+        code: couponCode,
+        start_date: startDate,
+        end_date: endDate,
+        image_url: imageUrl,
         is_active: true
       };
 
