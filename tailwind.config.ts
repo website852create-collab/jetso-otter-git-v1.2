@@ -10,25 +10,22 @@ const config: Config = {
     extend: {
       colors: {
         otter: {
-          50: '#fdfbf7',  // 背景米白
-          100: '#f7f3e8',
+          50: '#fdfbf7',  // 極淺米色 (背景)
+          100: '#f7f3e8', // 淺米色
           200: '#ese3cf',
           300: '#dccfb3',
           400: '#c2a88f',
           500: '#a68b73', // 水獺毛色 (淺)
           600: '#8d6e63', // 主色
           700: '#75584f',
-          800: '#4e342e', // 深褐色 (文字)
-          900: '#3e2b26',
+          800: '#4e342e', // 深褐色 (重要文字)
+          900: '#3e2b26', // 極深褐色 (標題)
         },
         accent: {
-          500: '#ff8f70', // 珊瑚橘 (CTA按鈕)
+          500: '#ff8f70', // 珊瑚橘 (按鈕)
           600: '#e67a5c',
         }
       },
-      fontFamily: {
-        sans: ['Inter', 'PingFang TC', 'Microsoft JhengHei', 'sans-serif'],
-      }
     },
   },
   plugins: [],
