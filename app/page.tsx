@@ -13,7 +13,7 @@ export const revalidate = 3600;
 export default async function Home() {
   // 從 Supabase 抓取有效優惠券
   const { data: coupons, error } = await supabase
-    .from('coupons')
+    .from('active_coupons_range')
     .select('*')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
